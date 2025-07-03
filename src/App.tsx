@@ -22,41 +22,44 @@ import PublicGoodsGame from './experiments/PublicGoodsGame';
 import SocialDiscountingTask from './experiments/SocialDiscountingTask';
 import RewardSocialComparisonBanditTask from './experiments/RewardSocialComparisonBanditTask/index';
 import EnhancedBanditTask from './experiments/EnhancedBanditTask/index';
+import { PhysiologicalSyncProvider } from './components/PhysiologicalSyncContext';
 
 const App = () => {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar />
-        <AnimatePresence mode="wait">
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/experiments" element={<ExperimentsPage />} />
-              <Route path="/experiments/:id" element={<ExperimentPage />} />
-              <Route path="/experiments/iowa-gambling-task" element={<IowaGamblingTask />} />
-              <Route path="/experiments/delay-discounting-task" element={<DelayDiscountingTask />} />
-              <Route path="/experiments/balloon-risk-task" element={<BalloonRiskTask />} />
-              <Route path="/experiments/framing-effect-tasks" element={<FramingEffectTasks />} />
-              <Route path="/experiments/multi-armed-bandit-task" element={<MultiArmedBanditTask />} />
-              <Route path="/experiments/ultimatum-game" element={<UltimatumGame />} />
-              <Route path="/experiments/trust-game" element={<TrustGame />} />
-              <Route path="/experiments/dictator-game" element={<DictatorGame />} />
-              <Route path="/experiments/stag-hunt" element={<StagHunt />} />
-              <Route path="/experiments/chicken-game" element={<ChickenGame />} />
-              <Route path="/experiments/prisoners-dilemma" element={<PrisonersDilemma />} />
-              <Route path="/experiments/third-party-punishment" element={<ThirdPartyPunishment />} />
-              <Route path="/experiments/trolley-problem" element={<TrolleyProblem />} />
-              <Route path="/experiments/public-goods-game" element={<PublicGoodsGame />} />
-              <Route path="/experiments/social-discounting-task" element={<SocialDiscountingTask />} />
-              <Route path="/experiments/reward-social-comparison-bandit-task" element={<RewardSocialComparisonBanditTask />} />
-              <Route path="/experiments/enhanced-bandit-task" element={<EnhancedBanditTask />} />
-            </Routes>
-          </main>
-        </AnimatePresence>
-        <Footer />
-      </div>
-    </Router>
+    <PhysiologicalSyncProvider experimentId="cognixai-platform">
+      <Router>
+        <div className="min-h-screen flex flex-col bg-gray-50">
+          <Navbar />
+          <AnimatePresence mode="wait">
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/experiments" element={<ExperimentsPage />} />
+                <Route path="/experiments/:id" element={<ExperimentPage />} />
+                <Route path="/experiments/iowa-gambling-task" element={<IowaGamblingTask />} />
+                <Route path="/experiments/delay-discounting-task" element={<DelayDiscountingTask />} />
+                <Route path="/experiments/balloon-risk-task" element={<BalloonRiskTask />} />
+                <Route path="/experiments/framing-effect-tasks" element={<FramingEffectTasks />} />
+                <Route path="/experiments/multi-armed-bandit-task" element={<MultiArmedBanditTask />} />
+                <Route path="/experiments/ultimatum-game" element={<UltimatumGame />} />
+                <Route path="/experiments/trust-game" element={<TrustGame />} />
+                <Route path="/experiments/dictator-game" element={<DictatorGame />} />
+                <Route path="/experiments/stag-hunt" element={<StagHunt />} />
+                <Route path="/experiments/chicken-game" element={<ChickenGame />} />
+                <Route path="/experiments/prisoners-dilemma" element={<PrisonersDilemma />} />
+                <Route path="/experiments/third-party-punishment" element={<ThirdPartyPunishment />} />
+                <Route path="/experiments/trolley-problem" element={<TrolleyProblem />} />
+                <Route path="/experiments/public-goods-game" element={<PublicGoodsGame />} />
+                <Route path="/experiments/social-discounting-task" element={<SocialDiscountingTask />} />
+                <Route path="/experiments/reward-social-comparison-bandit-task" element={<RewardSocialComparisonBanditTask />} />
+                <Route path="/experiments/enhanced-bandit-task" element={<EnhancedBanditTask />} />
+              </Routes>
+            </main>
+          </AnimatePresence>
+          <Footer />
+        </div>
+      </Router>
+    </PhysiologicalSyncProvider>
   );
 };
 

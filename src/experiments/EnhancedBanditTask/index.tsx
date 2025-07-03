@@ -8,6 +8,8 @@ import ExperimentSetup from './ExperimentSetup';
 import ExperimentTask from './ExperimentTask';
 import ResultsComparison from './ResultsComparison';
 import AIObservationMode from './AIObservationMode';
+import PhysiologicalSync from '../../components/PhysiologicalSync';
+import { usePhysiologicalSync } from '../../components/PhysiologicalSyncContext';
 
 export type GameState = 'introduction' | 'setup' | 'experiment' | 'results';
 
@@ -52,15 +54,30 @@ const EnhancedBanditTask = () => {
   const [gameState, setGameState] = useState<GameState>('introduction');
   const [config, setConfig] = useState<ExperimentConfig | null>(null);
   const [experimentData, setExperimentData] = useState<TrialData[]>([]);
+  const { sendSyncMarker } = usePhysiologicalSync();
 
   const handleConfigComplete = (newConfig: ExperimentConfig) => {
     setConfig(newConfig);
     setGameState('experiment');
+    // 发送实验配置同步标记
+    sendSyncMarker('experiment_config', { 
+      config: {
+        totalTrials: newConfig.totalTrials,
+        numBandits: newConfig.numBandits,
+        comparisonMode: newConfig.comparisonMode,
+        rewardStructure: newConfig.rewardStructure
+      }
+    });
   };
 
   const handleExperimentComplete = (data: TrialData[]) => {
     setExperimentData(data);
     setGameState('results');
+    // 发送实验完成同步标记
+    sendSyncMarker('experiment_complete', { 
+      totalTrials: data.length,
+      finalScore: data.reduce((sum, trial) => sum + (trial.humanReward || 0), 0)
+    });
   };
 
   return (
@@ -83,7 +100,10 @@ const EnhancedBanditTask = () => {
             transition={{ duration: 0.5 }}
           >
             {gameState === 'introduction' && (
-              <Introduction onStart={() => setGameState('setup')} />
+              <Introduction onStart={() => {
+                setGameState('setup');
+                sendSyncMarker('experiment_start', { stage: 'introduction' });
+              }} />
             )}
 
             {gameState === 'setup' && (
@@ -114,12 +134,22 @@ const EnhancedBanditTask = () => {
                   setGameState('introduction');
                   setConfig(null);
                   setExperimentData([]);
+                  sendSyncMarker('experiment_restart');
                 }}
               />
             )}
           </motion.div>
         </div>
       </div>
+      
+      {/* 生理信号同步组件 */}
+      <PhysiologicalSync 
+        experimentId="enhanced-bandit-task"
+        participantId={`participant-${Date.now()}`}
+        onSyncEvent={(eventType, timestamp, metadata) => {
+          console.log(`Sync event: ${eventType} at ${timestamp}`, metadata);
+        }}
+      />
     </div>
   );
 };
