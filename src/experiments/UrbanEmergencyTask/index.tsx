@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import { Link } from 'react-router-dom';
 import Introduction from './Introduction';
 import ExperimentSetup from './ExperimentSetup';
+import GameInterface from './GameInterface';
 import { usePhysiologicalSync } from '../../components/PhysiologicalSyncContext';
 import PhysiologicalSync from '../../components/PhysiologicalSync';
 
@@ -42,6 +43,14 @@ const UrbanEmergencyTask = () => {
     });
   };
 
+  const handleExperimentComplete = () => {
+    setGameState('results');
+    // 发送实验完成同步标记
+    sendSyncMarker('experiment_complete', {
+      timestamp: Date.now()
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20">
       <div className="container mx-auto px-4">
@@ -73,24 +82,33 @@ const UrbanEmergencyTask = () => {
             )}
 
             {gameState === 'experiment' && config && (
+              <GameInterface 
+                config={config}
+                onComplete={handleExperimentComplete}
+                onBack={() => setGameState('setup')}
+              />
+            )}
+
+            {gameState === 'results' && (
               <div className="bg-white rounded-xl shadow-sm p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">实验正在准备中...</h2>
-                <p className="text-gray-600 mb-4">
-                  城市应急任务实验正在开发中，敬请期待！
-                </p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">实验结束</h2>
                 <p className="text-gray-600 mb-8">
-                  您选择的配置：
+                  感谢您参与城市应急任务实验！您的数据已被记录，将用于研究分析。
                 </p>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <pre className="text-sm">{JSON.stringify(config, null, 2)}</pre>
+                <div className="flex space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setGameState('introduction')}
+                  >
+                    重新开始
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    href="/experiments"
+                  >
+                    返回实验列表
+                  </Button>
                 </div>
-                <Button 
-                  variant="primary" 
-                  className="mt-8"
-                  onClick={() => setGameState('introduction')}
-                >
-                  返回介绍页面
-                </Button>
               </div>
             )}
           </motion.div>
