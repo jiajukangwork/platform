@@ -1,6 +1,29 @@
 {
   "experiments": [
     {
+      "id": -1,
+      "title": "Enhanced Multi-Armed Bandit Task 增强版多臂老虎机任务：人机决策对比研究",
+      "authors": "张烁, CogniAND研究团队",
+      "description": "这是一个创新的多臂老虎机实验，集成了大语言模型来模拟人类决策过程。实验支持人机对比模式，让参与者与AI同时进行决策，实时比较策略差异。通过多种AI模型（GPT-4、Claude-3、Gemini等）的集成，研究人类与人工智能在探索-利用权衡中的行为差异，探索AI的决策策略与人类直觉的对比。实验还支持动态奖励结构、社会比较反馈和情感反馈等高级功能。",
+      "category": "behavioral",
+      "tags": ["人机对比", "大语言模型", "探索-利用", "决策策略", "AI行为", "实时比较", "多模态反馈"],
+      "duration": "20-30 分钟",
+      "difficulty": "中等",
+      "citations": 0,
+      "isPopular": true,
+      "version": "2.0",
+      "releaseDate": "2024-12-01",
+      "lastUpdated": "2024-12-01",
+      "relatedPapers": [
+        "Human-AI Collaboration in Multi-Armed Bandit Problems: A Comparative Study",
+        "Large Language Models as Decision-Making Agents: Behavioral Analysis in Uncertain Environments"
+      ],
+      "license": "CC BY-NC-SA 4.0",
+      "repository": "https://github.com/CogniAND/enhanced-bandit-task",
+      "contactInfo": "contact@CogniAND.research",
+      "experimentPath": "/experiments/enhanced-bandit-task"
+    },
+    {
       "id": 0,
       "title": "Enhanced Multi-Armed Bandit Task 增强版多臂老虎机任务：人机决策对比研究",
       "authors": "张烁, CogniAND研究团队",
