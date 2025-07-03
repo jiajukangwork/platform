@@ -2,26 +2,26 @@
   "experiments": [
     {
       "id": -1,
-      "title": "Enhanced Multi-Armed Bandit Task 增强版多臂老虎机任务：人机决策对比研究",
-      "authors": "张烁, CogniAND研究团队",
-      "description": "这是一个创新的多臂老虎机实验，集成了大语言模型来模拟人类决策过程。实验支持人机对比模式，让参与者与AI同时进行决策，实时比较策略差异。通过多种AI模型（GPT-4、Claude-3、Gemini等）的集成，研究人类与人工智能在探索-利用权衡中的行为差异，探索AI的决策策略与人类直觉的对比。实验还支持动态奖励结构、社会比较反馈和情感反馈等高级功能。",
-      "category": "behavioral",
-      "tags": ["人机对比", "大语言模型", "探索-利用", "决策策略", "AI行为", "实时比较", "多模态反馈"],
-      "duration": "20-30 分钟",
-      "difficulty": "中等",
+      "title": "城市应急任务：多智能体认知协作与资源调配实验",
+      "authors": "CogniAND研究团队",
+      "description": "本实验模拟智慧城市中的突发事件响应场景，参与者扮演不同系统控制角色（如交通调度、电力管理、应急响应等），在信息受限的网格化城市地图中协作完成任务。实验采用多智能体框架建模，每个角色拥有独立的感知输入与操作权限，需通过受限通信协调资源，以最小化城市系统损失。任务具备高度动态性与认知挑战，适用于研究注意分配、策略形成、分布式认知及人机协同等问题。平台支持接入人类与AI代理，适合行为与神经数据同步采集。",
+      "category": "cognitive",
+      "tags": ["多智能体", "群体决策", "城市模拟", "认知负荷", "资源调度", "分布式认知", "协作任务"],
+      "duration": "25-40 分钟",
+      "difficulty": "较高",
       "citations": 0,
       "isPopular": true,
-      "version": "2.0",
-      "releaseDate": "2024-12-01",
-      "lastUpdated": "2024-12-01",
+      "version": "1.0",
+      "releaseDate": "2025-07-05",
+      "lastUpdated": "2025-07-05",
       "relatedPapers": [
-        "Human-AI Collaboration in Multi-Armed Bandit Problems: A Comparative Study",
-        "Large Language Models as Decision-Making Agents: Behavioral Analysis in Uncertain Environments"
+        "Distributed Cognition in Emergency Resource Management: A Multi-Agent Perspective",
+        "Cooperative Control and Decision Making in Grid-Based Urban Simulations"
       ],
       "license": "CC BY-NC-SA 4.0",
-      "repository": "https://github.com/CogniAND/enhanced-bandit-task",
+      "repository": "https://github.com/CogniAND/urban-emergency-task",
       "contactInfo": "contact@CogniAND.research",
-      "experimentPath": "/experiments/enhanced-bandit-task"
+      "experimentPath": "/experiments/urban-emergency-task"
     },
     {
       "id": 0,
