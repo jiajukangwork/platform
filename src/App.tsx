@@ -22,6 +22,7 @@ import PublicGoodsGame from './experiments/PublicGoodsGame';
 import SocialDiscountingTask from './experiments/SocialDiscountingTask';
 import RewardSocialComparisonBanditTask from './experiments/RewardSocialComparisonBanditTask/index';
 import EnhancedBanditTask from './experiments/EnhancedBanditTask/index';
+import UrbanEmergencyTask from './experiments/UrbanEmergencyTask/index';
 import { PhysiologicalSyncProvider } from './components/PhysiologicalSyncContext';
 
 const App = () => {
@@ -53,6 +54,7 @@ const App = () => {
                 <Route path="/experiments/social-discounting-task" element={<SocialDiscountingTask />} />
                 <Route path="/experiments/reward-social-comparison-bandit-task" element={<RewardSocialComparisonBanditTask />} />
                 <Route path="/experiments/enhanced-bandit-task" element={<EnhancedBanditTask />} />
+                <Route path="/experiments/urban-emergency-task" element={<UrbanEmergencyTask />} />
               </Routes>
             </main>
           </AnimatePresence>
