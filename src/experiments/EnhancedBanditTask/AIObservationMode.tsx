@@ -4,6 +4,7 @@ import { Bot, Brain, ArrowLeft, BarChart3, Clock, Zap, MessageSquare, RefreshCw,
 import Button from '../../components/Button';
 import { ExperimentConfig, TrialData } from './index';
 import LLMService from './LLMService';
+import { usePhysiologicalSync } from '../../components/PhysiologicalSyncContext';
 
 interface AIObservationModeProps {
   config: ExperimentConfig;
@@ -35,9 +36,18 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
   const [runningInterval, setRunningInterval] = useState<NodeJS.Timeout | null>(null);
   
   const llmService = useRef(LLMService.getInstance());
+  const { sendSyncMarker } = usePhysiologicalSync();
 
   useEffect(() => {
     initializeBandits();
+    // 发送AI观察模式开始标记
+    sendSyncMarker('ai_observation_start', {
+      config: {
+        totalTrials: config.totalTrials,
+        numBandits: config.numBandits,
+        model: config.apiConfig.model
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -72,6 +82,12 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
     }));
     
     setBandits(newBandits);
+    
+    // 发送初始化标记
+    sendSyncMarker('bandits_initialized', { 
+      numBandits: config.numBandits,
+      initialMeans: newBandits.map(b => b.meanReward)
+    });
   };
 
   const generateReward = (bandit: BanditArm): number => {
@@ -83,12 +99,20 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
 
   const updateBanditMeans = () => {
     if (config.rewardStructure === 'dynamic') {
-      setBandits(prev => prev.map(bandit => ({
+      const newBandits = bandits.map(bandit => ({
         ...bandit,
         meanReward: Math.max(10, Math.min(90, 
           bandit.meanReward + (Math.random() - 0.5) * 5
         ))
-      })));
+      }));
+      
+      setBandits(newBandits);
+      
+      // 发送环境变化标记
+      sendSyncMarker('environment_change', { 
+        trial: currentTrial + 1,
+        newMeans: newBandits.map(b => b.meanReward)
+      });
     }
   };
 
@@ -122,11 +146,24 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
 
     setIsRunning(true);
     
+    // 发送AI决策开始标记
+    sendSyncMarker('ai_decision_start', {
+      trial: currentTrial + 1,
+      totalTrials: config.totalTrials
+    });
+    
     try {
       // 构建prompt
       const systemPrompt = buildPrompt(config.promptConfig.systemPrompt);
       const userPrompt = buildPrompt(config.promptConfig.decisionPrompt) + 
         (config.promptConfig.customInstructions ? `\n\n额外指令：${config.promptConfig.customInstructions}` : '');
+
+      // 发送LLM请求标记
+      sendSyncMarker('llm_request', {
+        trial: currentTrial + 1,
+        systemPrompt,
+        userPrompt
+      });
 
       // 调用LLM API
       const llmResponse = await llmService.current.makeDecision({
@@ -144,6 +181,15 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
       setLastLLMChoice(llmChoice);
       setLlmScore(prev => prev + llmReward);
       setLlmThinking(llmResponse.thinking || llmResponse.rawResponse);
+      
+      // 发送LLM响应标记
+      sendSyncMarker('llm_response', {
+        trial: currentTrial + 1,
+        choice: llmChoice,
+        reward: llmReward,
+        thinking: llmResponse.thinking,
+        response: llmResponse.rawResponse
+      });
       
       // 更新bandit统计
       setBandits(prev => prev.map((bandit, i) => 
@@ -175,15 +221,35 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
       updateBanditMeans();
       setCurrentTrial(prev => prev + 1);
       
+      // 发送试验完成标记
+      sendSyncMarker('ai_decision_complete', {
+        trial: currentTrial + 1,
+        choice: llmChoice,
+        reward: llmReward,
+        totalScore: llmScore + llmReward
+      });
+      
       // 检查是否完成
       if (currentTrial + 1 >= config.totalTrials) {
         setAutoRunEnabled(false);
+        // 发送观察模式完成标记
+        sendSyncMarker('ai_observation_complete', {
+          totalTrials: currentTrial + 1,
+          finalScore: llmScore + llmReward
+        });
+        
         setTimeout(() => {
           onComplete(trialData);
         }, 2000);
       }
     } catch (error) {
       console.error('AI决策失败:', error);
+      // 发送错误标记
+      sendSyncMarker('llm_error', {
+        trial: currentTrial + 1,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       // 使用随机选择作为fallback
       const llmChoice = Math.floor(Math.random() * config.numBandits);
       const llmReward = generateReward(bandits[llmChoice]);
@@ -227,24 +293,41 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
   };
 
   const toggleAutoRun = () => {
-    if (autoRunEnabled) {
-      setAutoRunEnabled(false);
-      setIsPaused(false);
-    } else {
-      setAutoRunEnabled(true);
-      setIsPaused(false);
-    }
+    const newState = !autoRunEnabled;
+    setAutoRunEnabled(newState);
+    setIsPaused(false);
+    
+    // 发送自动运行状态变更标记
+    sendSyncMarker('auto_run_toggle', { 
+      enabled: newState,
+      trial: currentTrial + 1
+    });
   };
 
   const togglePause = () => {
-    setIsPaused(!isPaused);
+    const newState = !isPaused;
+    setIsPaused(newState);
+    
+    // 发送暂停状态变更标记
+    sendSyncMarker('pause_toggle', { 
+      paused: newState,
+      trial: currentTrial + 1
+    });
   };
 
   const changeSpeed = () => {
     const speeds = [1, 2, 5];
     const currentIndex = speeds.indexOf(speed);
     const nextIndex = (currentIndex + 1) % speeds.length;
-    setSpeed(speeds[nextIndex]);
+    const newSpeed = speeds[nextIndex];
+    setSpeed(newSpeed);
+    
+    // 发送速度变更标记
+    sendSyncMarker('speed_change', { 
+      oldSpeed: speed,
+      newSpeed: newSpeed,
+      trial: currentTrial + 1
+    });
   };
 
   const exportData = () => {
@@ -268,6 +351,12 @@ const AIObservationMode = ({ config, onComplete, onBack }: AIObservationModeProp
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // 发送数据导出标记
+    sendSyncMarker('data_export', { 
+      totalTrials: trialData.length,
+      timestamp: Date.now()
+    });
   };
 
   return (

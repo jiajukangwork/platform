@@ -4,6 +4,7 @@ import { ArrowLeft, Bot, User, BarChart3, Clock, Zap, MessageSquare, Brain } fro
 import Button from '../../components/Button';
 import { ExperimentConfig, TrialData } from './index';
 import LLMService from './LLMService';
+import { usePhysiologicalSync } from '../../components/PhysiologicalSyncContext';
 
 interface ExperimentTaskProps {
   config: ExperimentConfig;
@@ -35,10 +36,16 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
   const [showLLMThinking, setShowLLMThinking] = useState(false);
   
   const llmService = useRef(LLMService.getInstance());
+  const { sendSyncMarker } = usePhysiologicalSync();
 
   useEffect(() => {
     initializeBandits();
     setTrialStartTime(Date.now());
+    // 发送实验开始标记
+    sendSyncMarker('trial_start', { 
+      trial: currentTrial + 1,
+      totalTrials: config.totalTrials
+    });
   }, []);
 
   const initializeBandits = () => {
@@ -54,6 +61,12 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
     }));
     
     setBandits(newBandits);
+    
+    // 发送初始化标记
+    sendSyncMarker('bandits_initialized', { 
+      numBandits: config.numBandits,
+      initialMeans: newBandits.map(b => b.meanReward)
+    });
   };
 
   const generateReward = (bandit: BanditArm): number => {
@@ -65,12 +78,20 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
 
   const updateBanditMeans = () => {
     if (config.rewardStructure === 'dynamic') {
-      setBandits(prev => prev.map(bandit => ({
+      const newBandits = bandits.map(bandit => ({
         ...bandit,
         meanReward: Math.max(10, Math.min(90, 
           bandit.meanReward + (Math.random() - 0.5) * 5
         ))
-      })));
+      }));
+      
+      setBandits(newBandits);
+      
+      // 发送环境变化标记
+      sendSyncMarker('environment_change', { 
+        trial: currentTrial + 1,
+        newMeans: newBandits.map(b => b.meanReward)
+      });
     }
   };
 
@@ -105,6 +126,14 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
     setLastHumanChoice(banditIndex);
     setHumanScore(prev => prev + humanReward);
     
+    // 发送人类选择标记
+    sendSyncMarker('human_choice', {
+      trial: currentTrial + 1,
+      choice: banditIndex,
+      reward: humanReward,
+      reactionTime
+    });
+    
     // Update bandit stats
     setBandits(prev => prev.map((bandit, i) => 
       i === banditIndex 
@@ -127,6 +156,13 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
         const userPrompt = buildPrompt(config.promptConfig.decisionPrompt) + 
           (config.promptConfig.customInstructions ? `\n\n额外指令：${config.promptConfig.customInstructions}` : '');
 
+        // 发送LLM请求开始标记
+        sendSyncMarker('llm_request_start', {
+          trial: currentTrial + 1,
+          systemPrompt,
+          userPrompt
+        });
+
         // 调用LLM API
         const llmResponse = await llmService.current.makeDecision({
           provider: config.apiConfig.provider,
@@ -144,6 +180,15 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
         setLlmScore(prev => prev + llmReward);
         setLlmThinking(llmResponse.thinking || llmResponse.rawResponse);
         
+        // 发送LLM响应标记
+        sendSyncMarker('llm_response', {
+          trial: currentTrial + 1,
+          choice: llmChoice,
+          reward: llmReward,
+          thinking: llmResponse.thinking,
+          response: llmResponse.rawResponse
+        });
+        
         // Record trial data
         const newTrialData: TrialData = {
           trial: currentTrial + 1,
@@ -152,7 +197,7 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
           humanReward,
           llmReward,
           humanReactionTime: reactionTime,
-          llmReactionTime: 1000 + Math.random() * 2000, // Simulated LLM thinking time
+          llmReactionTime: Date.now() - trialStartTime - reactionTime,
           banditMeans: bandits.map(b => b.meanReward),
           timestamp: Date.now(),
           llmResponse: llmResponse.rawResponse,
@@ -174,6 +219,13 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
         setLastLLMChoice(llmChoice);
         setLlmScore(prev => prev + llmReward);
         setLlmThinking('API调用失败，使用随机选择');
+        
+        // 发送LLM错误标记
+        sendSyncMarker('llm_error', {
+          trial: currentTrial + 1,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          fallbackChoice: llmChoice
+        });
         
         const newTrialData: TrialData = {
           trial: currentTrial + 1,
@@ -210,6 +262,13 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
 
     // Check if experiment is complete
     if (currentTrial + 1 >= config.totalTrials) {
+      // 发送实验结束标记
+      sendSyncMarker('experiment_end', {
+        totalTrials: currentTrial + 1,
+        humanScore,
+        llmScore: config.comparisonMode === 'human-vs-llm' ? llmScore : undefined
+      });
+      
       setTimeout(() => {
         onComplete(trialData);
       }, 2000);
@@ -219,6 +278,12 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
       setTrialStartTime(Date.now());
       setLastHumanChoice(null);
       setLastLLMChoice(null);
+      
+      // 发送新试验开始标记
+      sendSyncMarker('trial_start', { 
+        trial: currentTrial + 2,
+        totalTrials: config.totalTrials
+      });
     }
   };
 
@@ -346,7 +411,7 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
           >
             <div className={`w-full h-16 ${bandit.color} rounded-lg mb-3`} />
             <div className="text-center">
-              <p className="font-medium text-gray-900">选项 {index + 1}</p>
+              <p className="font-medium text-gray-900">选项 {index}</p>
               <p className="text-sm text-gray-600">
                 选择次数: {bandit.timesChosen}
               </p>
@@ -389,7 +454,7 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {lastHumanChoice !== null && (
               <div>
-                <p className="text-sm text-gray-600">人类选择: 选项 {lastHumanChoice + 1}</p>
+                <p className="text-sm text-gray-600">人类选择: 选项 {lastHumanChoice}</p>
                 <p className="text-lg font-medium text-blue-600">
                   奖励: {bandits[lastHumanChoice]?.currentReward || 0}
                 </p>
@@ -397,7 +462,7 @@ const ExperimentTask = ({ config, onComplete, onBack }: ExperimentTaskProps) => 
             )}
             {lastLLMChoice !== null && config.comparisonMode === 'human-vs-llm' && (
               <div>
-                <p className="text-sm text-gray-600">AI选择: 选项 {lastLLMChoice + 1}</p>
+                <p className="text-sm text-gray-600">AI选择: 选项 {lastLLMChoice}</p>
                 <p className="text-lg font-medium text-green-600">
                   奖励: {generateReward(bandits[lastLLMChoice])}
                 </p>

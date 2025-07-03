@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Wifi, WifiOff, Brain, Heart, Zap, X, Settings, RefreshCw } from 'lucide-react';
 import Button from './Button';
+import { usePhysiologicalSync } from './PhysiologicalSyncContext';
 
 interface PhysiologicalSyncProps {
   experimentId: string;
@@ -28,6 +29,7 @@ const PhysiologicalSync = ({
   onSyncEvent,
   className = ''
 }: PhysiologicalSyncProps) => {
+  const { sendSyncMarker } = usePhysiologicalSync();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -167,7 +169,7 @@ const PhysiologicalSync = ({
     }
   };
 
-  const sendSyncMarker = (eventType: string = 'manual_sync', metadata?: any) => {
+  const handleSyncMarker = (eventType: string = 'manual_sync', metadata?: any) => {
     setIsSyncing(true);
     const timestamp = Date.now();
     const relativeTimestamp = timestamp - sessionStartTime.current;
@@ -184,6 +186,9 @@ const PhysiologicalSync = ({
         metadata
       }));
     }
+    
+    // Send sync marker via context
+    sendSyncMarker(eventType, metadata);
     
     // Send sync marker via callback if provided
     if (onSyncEvent) {
@@ -204,7 +209,7 @@ const PhysiologicalSync = ({
     }
     
     syncIntervalRef.current = setInterval(() => {
-      sendSyncMarker('auto_sync');
+      handleSyncMarker('auto_sync');
     }, config.syncInterval);
   };
 
@@ -362,7 +367,7 @@ const PhysiologicalSync = ({
                   variant="primary"
                   size="sm"
                   onClick={() => {
-                    sendSyncMarker('config_sync');
+                    handleSyncMarker('config_sync');
                     setIsConfigOpen(false);
                   }}
                 >
@@ -392,7 +397,7 @@ const PhysiologicalSync = ({
                   <Settings className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => sendSyncMarker('manual_sync')}
+                  onClick={() => handleSyncMarker('manual_sync')}
                   className="text-primary-600 hover:text-primary-800"
                 >
                   <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
