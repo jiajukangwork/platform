@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Truck, Zap, Activity, Building, Home, Loader as Road, Droplet } from 'lucide-react';
+import { AlertTriangle, Truck, Zap, Activity, Building, Home, Loader as Road, Droplet, X } from 'lucide-react';
 import { GameEvent, Resource } from '../GameInterface';
 
 interface CityMapProps {
