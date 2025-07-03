@@ -462,7 +462,7 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     }
   };
 
-  const generateAgentThought = () => {
+  const generateAgentThought = async () => {
     if (!config.aiAgents) return;
     
     // Get roles that are not the player's role
@@ -500,7 +500,37 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     // Select a random active event
     const selectedEvent = activeEvents[Math.floor(Math.random() * activeEvents.length)];
     
-    // Generate thought based on role and event
+    // If using LLM, generate thought with LLM
+    if (config.llmConfig.apiKey) {
+      try {
+        const thought = await generateLLMThought(aiRole, selectedEvent);
+        
+        const newThought: AgentThought = {
+          agentId: `agent-${aiRole}`,
+          agentRole: getRoleName(aiRole),
+          content: thought,
+          timestamp: Date.now(),
+          relatedEvents: [selectedEvent.id]
+        };
+        
+        setAgentThoughts(prev => [...prev, newThought]);
+        
+        // Send agent thought marker
+        sendSyncMarker('agent_thought', {
+          agentRole: aiRole,
+          relatedEvents: [selectedEvent.id],
+          timestamp: Date.now(),
+          isLLMGenerated: true
+        });
+        
+        return;
+      } catch (error) {
+        console.error('LLM thought generation failed:', error);
+        // Fall back to template-based thoughts
+      }
+    }
+    
+    // Generate thought based on role and event (template-based fallback)
     let thoughtContent = '';
     
     switch (aiRole) {
@@ -543,8 +573,118 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     sendSyncMarker('agent_thought', {
       agentRole: aiRole,
       relatedEvents: [selectedEvent.id],
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isLLMGenerated: false
     });
+  };
+
+  const generateLLMThought = async (role: string, event: GameEvent): Promise<string> => {
+    const prompt = `你是城市应急响应系统中的${getRoleName(role)}。
+当前有一个${event.severity}级别的事件：${event.title}，位于坐标(${event.location.x}, ${event.location.y})。
+事件描述：${event.description}
+受影响的系统：${event.affectedSystems.map(s => getRoleName(s)).join('、')}
+所需资源：${Object.entries(event.requiredResources).map(([type, amount]) => `${getRoleName(type)} ${amount}个`).join('、')}
+
+作为${getRoleName(role)}，你现在的想法是什么？请简短回答（50-100字）。`;
+
+    try {
+      const response = await callLLMAPI(prompt);
+      return response;
+    } catch (error) {
+      console.error('LLM API call failed:', error);
+      throw error;
+    }
+  };
+
+  const callLLMAPI = async (prompt: string): Promise<string> => {
+    const { provider, model, apiKey, baseUrl } = config.llmConfig;
+    
+    let apiUrl = '';
+    let requestBody = {};
+    let headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    };
+    
+    switch (provider) {
+      case 'openai':
+        apiUrl = baseUrl || 'https://api.openai.com/v1/chat/completions';
+        requestBody = {
+          model,
+          messages: [
+            { role: 'system', content: config.llmConfig.systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 150,
+          temperature: 0.7
+        };
+        break;
+      case 'anthropic':
+        apiUrl = baseUrl || 'https://api.anthropic.com/v1/messages';
+        requestBody = {
+          model,
+          max_tokens: 150,
+          messages: [{ role: 'user', content: prompt }],
+          system: config.llmConfig.systemPrompt
+        };
+        headers = {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        };
+        break;
+      case 'google':
+        apiUrl = baseUrl || `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        requestBody = {
+          contents: [{
+            parts: [{ text: `${config.llmConfig.systemPrompt}\n\n${prompt}` }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 150,
+            temperature: 0.7
+          }
+        };
+        // No auth header needed for Google (API key in URL)
+        headers = { 'Content-Type': 'application/json' };
+        break;
+      default:
+        throw new Error(`Unsupported LLM provider: ${provider}`);
+    }
+    
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract content based on provider
+      let content = '';
+      switch (provider) {
+        case 'openai':
+          content = data.choices[0]?.message?.content || '';
+          break;
+        case 'anthropic':
+          content = data.content[0]?.text || '';
+          break;
+        case 'google':
+          content = data.candidates[0]?.content?.parts[0]?.text || '';
+          break;
+        default:
+          content = 'API响应解析失败';
+      }
+      
+      return content;
+    } catch (error) {
+      console.error('LLM API call failed:', error);
+      throw error;
+    }
   };
 
   const updateCityStatus = () => {
@@ -666,7 +806,7 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     
     const message: Message = {
@@ -690,20 +830,87 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
       gameTime
     });
     
-    // If communication mode is limited, simulate delay for AI response
-    if (config.communicationMode === 'limited' || config.communicationMode === 'hierarchical') {
-      setTimeout(() => {
-        generateAIResponse(message);
-      }, 5000 + Math.random() * 5000); // 5-10 second delay
-    } else {
-      // Immediate response in full communication mode
-      generateAIResponse(message);
+    // If using LLM for AI responses
+    if (config.llmConfig.apiKey && config.aiAgents) {
+      try {
+        const aiResponse = await generateLLMResponse(message);
+        
+        const responseMessage: Message = {
+          id: `msg-${Date.now()}`,
+          sender: selectedReceiver,
+          senderRole: getRoleName(selectedReceiver),
+          receiver: config.participantRole,
+          content: aiResponse,
+          timestamp: Date.now(),
+          isRead: false,
+          priority: 'normal'
+        };
+        
+        // Add delay based on communication mode
+        const delay = config.communicationMode === 'limited' || config.communicationMode === 'hierarchical'
+          ? 3000 + Math.random() * 3000 // 3-6 second delay
+          : 1000; // 1 second delay
+        
+        setTimeout(() => {
+          setMessages(prev => [...prev, responseMessage]);
+          
+          // Send AI response marker
+          sendSyncMarker('ai_response', {
+            messageId: responseMessage.id,
+            inResponseTo: message.id,
+            gameTime
+          });
+        }, delay);
+      } catch (error) {
+        console.error('Failed to generate LLM response:', error);
+        // Fall back to template-based response
+        generateTemplateResponse(message);
+      }
+    } else if (config.aiAgents) {
+      // If not using LLM, use template-based responses
+      generateTemplateResponse(message);
     }
   };
 
-  const generateAIResponse = (userMessage: Message) => {
-    if (!config.aiAgents) return;
+  const generateLLMResponse = async (userMessage: Message): Promise<string> => {
+    // Only respond if the message was directed to an AI agent
+    if (userMessage.receiver === 'all' || userMessage.receiver === config.participantRole) {
+      return '';
+    }
     
+    const activeEventsInfo = events
+      .filter(e => e.status === 'active')
+      .map(e => `- ${e.title}（${getSeverityText(e.severity)}）：${e.description}`)
+      .join('\n');
+    
+    const roleResources = resources
+      .filter(r => r.type === userMessage.receiver)
+      .map(r => `- ${r.name}：${r.quantity}个，状态：${r.status === 'available' ? '可用' : r.status === 'dispatched' ? '已派遣' : '已耗尽'}`)
+      .join('\n');
+    
+    const prompt = `你是城市应急响应系统中的${getRoleName(userMessage.receiver)}。
+当前游戏时间：${formatTime(gameTime)}
+当前活跃事件：
+${activeEventsInfo || '暂无活跃事件'}
+
+你的可用资源：
+${roleResources || '暂无可用资源'}
+
+${getRoleName(config.participantRole)}发送给你的消息：
+"${userMessage.content}"
+
+请以${getRoleName(userMessage.receiver)}的身份回复这条消息。回复应该简洁、专业，并且符合你的角色职责。`;
+
+    try {
+      const response = await callLLMAPI(prompt);
+      return response;
+    } catch (error) {
+      console.error('LLM API call failed:', error);
+      throw error;
+    }
+  };
+
+  const generateTemplateResponse = (userMessage: Message) => {
     // Only respond if the message was directed to an AI agent
     if (userMessage.receiver === 'all' || userMessage.receiver === config.participantRole) return;
     
@@ -726,14 +933,21 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
       priority: 'normal'
     };
     
-    setMessages(prev => [...prev, response]);
+    // Add delay based on communication mode
+    const delay = config.communicationMode === 'limited' || config.communicationMode === 'hierarchical'
+      ? 5000 + Math.random() * 5000 // 5-10 second delay
+      : 1000; // 1 second delay
     
-    // Send AI response marker
-    sendSyncMarker('ai_response', {
-      messageId: response.id,
-      inResponseTo: userMessage.id,
-      gameTime
-    });
+    setTimeout(() => {
+      setMessages(prev => [...prev, response]);
+      
+      // Send AI response marker
+      sendSyncMarker('ai_response', {
+        messageId: response.id,
+        inResponseTo: userMessage.id,
+        gameTime
+      });
+    }, delay);
   };
 
   const togglePause = () => {

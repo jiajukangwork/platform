@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Users, Map, Radio, AlertCircle, Clock, Cpu } from 'lucide-react';
+import { Settings, Users, Map, Radio, AlertCircle, Clock, Cpu, Key, Eye, EyeOff } from 'lucide-react';
 import Button from '../../components/Button';
 import { ExperimentConfig } from './index';
 
@@ -16,8 +16,25 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
     communicationMode: 'limited',
     aiAgents: true,
     duration: 30,
-    teamSize: 5
+    teamSize: 5,
+    llmConfig: {
+      provider: 'openai',
+      model: 'gpt-4',
+      apiKey: '',
+      baseUrl: '',
+      systemPrompt: `你是一个城市应急响应系统中的AI代理，负责在突发事件中协助人类决策者。
+你的目标是提供有用的建议，帮助协调资源，并确保城市系统的稳定运行。
+
+在回应时，请考虑以下因素：
+1. 事件的严重程度和影响范围
+2. 可用资源的类型和数量
+3. 其他系统的状态
+4. 优先级和紧急程度
+
+保持简洁、专业和有帮助的态度。在紧急情况下，直接提供行动建议。`
+    }
   });
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +150,121 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
                 <p className="mt-1 text-sm text-gray-600">{mode.description}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+
+        {/* 大语言模型配置 */}
+        <div className="border-t pt-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <Key className="w-5 h-5 mr-2" />
+            大语言模型配置
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                API提供商
+              </label>
+              <select
+                value={config.llmConfig.provider}
+                onChange={(e) => setConfig(prev => ({
+                  ...prev,
+                  llmConfig: { ...prev.llmConfig, provider: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="google">Google (Gemini)</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                模型名称
+              </label>
+              <select
+                value={config.llmConfig.model}
+                onChange={(e) => setConfig(prev => ({
+                  ...prev,
+                  llmConfig: { ...prev.llmConfig, model: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="claude-3-opus">Claude 3 Opus</option>
+                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                <option value="gemini-pro">Gemini Pro</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                API Key
+              </label>
+              <div className="relative">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={config.llmConfig.apiKey}
+                  onChange={(e) => setConfig(prev => ({
+                    ...prev,
+                    llmConfig: { ...prev.llmConfig, apiKey: e.target.value }
+                  }))}
+                  placeholder="输入您的API Key"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                >
+                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                您的API密钥将仅用于此实验，不会被存储或用于其他目的
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                自定义API地址（可选）
+              </label>
+              <input
+                type="url"
+                value={config.llmConfig.baseUrl}
+                onChange={(e) => setConfig(prev => ({
+                  ...prev,
+                  llmConfig: { ...prev.llmConfig, baseUrl: e.target.value }
+                }))}
+                placeholder="例如: https://api.openai.com/v1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                留空将使用默认API地址
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                系统提示词
+              </label>
+              <textarea
+                value={config.llmConfig.systemPrompt}
+                onChange={(e) => setConfig(prev => ({
+                  ...prev,
+                  llmConfig: { ...prev.llmConfig, systemPrompt: e.target.value }
+                }))}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="定义AI代理的角色和行为..."
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                这将定义AI代理的行为模式和响应风格
+              </p>
+            </div>
           </div>
         </div>
 

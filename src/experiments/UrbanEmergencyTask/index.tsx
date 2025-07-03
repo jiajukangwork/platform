@@ -19,6 +19,13 @@ export interface ExperimentConfig {
   aiAgents: boolean;
   duration: number; // in minutes
   teamSize: number;
+  llmConfig: {
+    provider: string;
+    model: string;
+    apiKey: string;
+    baseUrl: string;
+    systemPrompt: string;
+  };
 }
 
 const UrbanEmergencyTask = () => {
@@ -38,7 +45,8 @@ const UrbanEmergencyTask = () => {
         communicationMode: newConfig.communicationMode,
         aiAgents: newConfig.aiAgents,
         duration: newConfig.duration,
-        teamSize: newConfig.teamSize
+        teamSize: newConfig.teamSize,
+        llmModel: newConfig.llmConfig.model
       }
     });
   };
