@@ -18,6 +18,19 @@ export interface ExperimentConfig {
   rewardStructure: 'static' | 'dynamic';
   socialComparison: boolean;
   emotionalFeedback: boolean;
+  // 新增的API配置
+  apiConfig: {
+    provider: string;
+    apiKey: string;
+    baseUrl: string;
+    model: string;
+  };
+  // 新增的prompt配置
+  promptConfig: {
+    systemPrompt: string;
+    decisionPrompt: string;
+    customInstructions: string;
+  };
 }
 
 export interface TrialData {
@@ -30,6 +43,8 @@ export interface TrialData {
   llmReactionTime?: number;
   banditMeans: number[];
   timestamp: number;
+  llmResponse?: string; // 新增：记录LLM的原始响应
+  llmThinking?: string; // 新增：记录LLM的思考过程
 }
 
 const EnhancedBanditTask = () => {
