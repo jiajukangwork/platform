@@ -7,6 +7,7 @@ import Introduction from './Introduction';
 import ExperimentSetup from './ExperimentSetup';
 import ExperimentTask from './ExperimentTask';
 import ResultsComparison from './ResultsComparison';
+import AIObservationMode from './AIObservationMode';
 
 export type GameState = 'introduction' | 'setup' | 'experiment' | 'results';
 
@@ -90,11 +91,19 @@ const EnhancedBanditTask = () => {
             )}
 
             {gameState === 'experiment' && config && (
-              <ExperimentTask 
-                config={config}
-                onComplete={handleExperimentComplete}
-                onBack={() => setGameState('setup')}
-              />
+              config.comparisonMode === 'llm-only' ? (
+                <AIObservationMode 
+                  config={config}
+                  onComplete={handleExperimentComplete}
+                  onBack={() => setGameState('setup')}
+                />
+              ) : (
+                <ExperimentTask 
+                  config={config}
+                  onComplete={handleExperimentComplete}
+                  onBack={() => setGameState('setup')}
+                />
+              )
             )}
 
             {gameState === 'results' && config && (

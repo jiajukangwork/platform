@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Brain, ChevronRight, Bot, Users, BarChart3, Zap } from 'lucide-react';
+import { Brain, ChevronRight, Bot, Users, BarChart3, Zap, MessageSquare } from 'lucide-react';
 import Button from '../../components/Button';
 
 interface IntroductionProps {
@@ -64,6 +64,7 @@ const Introduction = ({ onStart }: IntroductionProps) => {
           <li>实时决策对比和可视化分析</li>
           <li>动态奖励结构和环境变化</li>
           <li>多维度数据收集和分析</li>
+          <li>自定义Prompt配置，灵活控制AI行为</li>
         </ul>
       </div>
 
@@ -82,8 +83,13 @@ const Introduction = ({ onStart }: IntroductionProps) => {
 const features = [
   {
     icon: <Bot className="w-4 h-4" />,
-    title: "AI决策模拟",
-    description: "使用先进的大语言模型模拟人类决策过程，提供真实的AI行为基准"
+    title: "真实AI决策",
+    description: "使用真实的大语言模型API，获取真实的AI决策行为和思考过程"
+  },
+  {
+    icon: <MessageSquare className="w-4 h-4" />,
+    title: "自定义Prompt",
+    description: "灵活配置系统提示词和决策提示词，精确控制AI的行为模式"
   },
   {
     icon: <Users className="w-4 h-4" />,
@@ -99,6 +105,11 @@ const features = [
     icon: <Zap className="w-4 h-4" />,
     title: "动态环境",
     description: "支持动态奖励结构，模拟真实世界的不确定性和变化"
+  },
+  {
+    icon: <Brain className="w-4 h-4" />,
+    title: "思考过程可视化",
+    description: "展示AI的思考过程，深入理解其决策逻辑和推理方式"
   }
 ];
 
