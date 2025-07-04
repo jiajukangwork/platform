@@ -70,12 +70,13 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     aiThoughts: []
   });
   
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(true); // Start paused
   const [showSettings, setShowSettings] = useState(false);
   const [showAiThoughts, setShowAiThoughts] = useState(true);
   const [gridSize, setGridSize] = useState(getGridDimensions(config.gridSize));
   const [cellSize, setCellSize] = useState(40);
   const [playerMove, setPlayerMove] = useState<{ dx: number; dy: number } | null>(null);
+  const [gameInitialized, setGameInitialized] = useState(false);
   
   const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
@@ -85,9 +86,6 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
   // 初始化游戏
   useEffect(() => {
     initializeGame();
-    startGameTimer();
-    startGameLoop();
-    startAiThinking();
     
     // 发送游戏开始标记
     sendSyncMarker('game_start', { 
@@ -166,7 +164,7 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
         {
           id: `log-${Date.now()}`,
           timestamp: Date.now(),
-          message: '游戏开始！与AI合作捕获猎物，获取最高分数。',
+          message: '游戏已准备就绪！点击"开始游戏"按钮或按空格键开始。',
           type: 'info'
         }
       ]
@@ -176,6 +174,35 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     sendSyncMarker('game_initialized', {
       gridSize,
       initialEntities: initialEntities.length
+    });
+    
+    setGameInitialized(true);
+  };
+  
+  const startGame = () => {
+    if (!gameInitialized) return;
+    
+    setIsPaused(false);
+    startGameTimer();
+    startGameLoop();
+    startAiThinking();
+    
+    setGameState(prev => ({
+      ...prev,
+      gameLog: [
+        ...prev.gameLog,
+        {
+          id: `log-${Date.now()}`,
+          timestamp: Date.now(),
+          message: '游戏开始！使用方向键移动，与AI合作捕获猎物。',
+          type: 'info'
+        }
+      ]
+    }));
+    
+    // 发送游戏开始标记
+    sendSyncMarker('game_started', {
+      timestamp: Date.now()
     });
   };
   
@@ -720,6 +747,11 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
   };
   
   const togglePause = () => {
+    if (!gameInitialized) {
+      startGame();
+      return;
+    }
+    
     setIsPaused(prev => !prev);
     
     // 发送暂停切换标记
@@ -808,6 +840,18 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     }
   };
   
+  // 处理空格键开始游戏
+  useEffect(() => {
+    const handleSpaceKey = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isPaused && gameInitialized) {
+        startGame();
+      }
+    };
+    
+    window.addEventListener('keydown', handleSpaceKey);
+    return () => window.removeEventListener('keydown', handleSpaceKey);
+  }, [isPaused, gameInitialized]);
+  
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
       {/* Top Bar */}
@@ -850,6 +894,21 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
         <div className="w-2/3 flex flex-col border-r border-gray-200">
           {/* Game Grid */}
           <div className="flex-1 flex items-center justify-center p-4 bg-gray-50">
+            {isPaused && gameInitialized && (
+              <div className="absolute z-10 bg-black/70 text-white p-6 rounded-xl text-center">
+                <h3 className="text-xl font-bold mb-4">游戏已暂停</h3>
+                <p className="mb-4">使用方向键移动猎人，与AI合作捕获猎物</p>
+                <Button 
+                  variant="primary" 
+                  onClick={startGame}
+                  className="px-6"
+                >
+                  开始游戏
+                </Button>
+                <p className="mt-2 text-sm text-gray-300">或按空格键开始</p>
+              </div>
+            )}
+            
             <div 
               className="grid gap-1 bg-white p-2 rounded-lg shadow-inner"
               style={{ 
