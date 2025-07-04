@@ -38,10 +38,19 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
     }
   });
   const [showApiKey, setShowApiKey] = useState(false);
+  const [customModel, setCustomModel] = useState('');
+  const [useCustomModel, setUseCustomModel] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onComplete(config);
+    
+    // If using custom model, update the config
+    const finalConfig = {...config};
+    if (useCustomModel && customModel.trim() !== '') {
+      finalConfig.llmConfig.model = customModel.trim();
+    }
+    
+    onComplete(finalConfig);
   };
 
   return (
@@ -186,21 +195,43 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 模型名称
               </label>
-              <select
-                value={config.llmConfig.model}
-                onChange={(e) => setConfig(prev => ({
-                  ...prev,
-                  llmConfig: { ...prev.llmConfig, model: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                <option value="gemini-pro">Gemini Pro</option>
-              </select>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={useCustomModel}
+                    onChange={(e) => setUseCustomModel(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-600">使用自定义模型名称</span>
+                </div>
+                
+                {useCustomModel ? (
+                  <input
+                    type="text"
+                    value={customModel}
+                    onChange={(e) => setCustomModel(e.target.value)}
+                    placeholder="输入自定义模型名称"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                ) : (
+                  <select
+                    value={config.llmConfig.model}
+                    onChange={(e) => setConfig(prev => ({
+                      ...prev,
+                      llmConfig: { ...prev.llmConfig, model: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="claude-3-opus">Claude 3 Opus</option>
+                    <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                    <option value="gemini-pro">Gemini Pro</option>
+                  </select>
+                )}
+              </div>
             </div>
 
             <div className="md:col-span-2">
