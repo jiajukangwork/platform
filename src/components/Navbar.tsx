@@ -30,7 +30,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             {/* <Sparkles className="h-8 w-8 text-primary-600" /> */}
-            <img src=".../public/favicon.svg" alt="CogniAND Logo" className="h-8 w-8" />
+            <img src="../public/favicon.svg" alt="CogniAND Logo" className="h-8 w-8" />
 
             <span className="text-2xl font-serif font-bold text-gray-900">
               CogniAND
