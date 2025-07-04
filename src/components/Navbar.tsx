@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Sparkles } from 'lucide-react';
+<img src="/home/project/public/favicon.svg" alt="CogniAND Logo" className="h-8 w-8" />
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,6 +31,8 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             <Sparkles className="h-8 w-8 text-primary-600" />
+            <img src="/favicon.svg" alt="CogniAND Logo" className="h-8 w-8" />
+
             <span className="text-2xl font-serif font-bold text-gray-900">
               CogniAND
             </span>
