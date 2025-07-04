@@ -1,6 +1,29 @@
 {
   "experiments": [
     {
+      "id": -2,
+      "title": "猎鹿任务：信念推理与协作策略实验",
+      "authors": "CogniAND研究团队（基于Yoshida等人, 2010）",
+      "description": "本实验基于经典博弈论中的“猎鹿游戏”设计，模拟人与智能体之间的合作博弈过程。参与者在二维网格环境中与一个策略多变的AI代理协作追捕猎物（兔子与鹿），以获得最高得分。实验核心在于递归信念推理，即玩家需推测AI是否会合作，并据此调整自身策略，从而探索“我相信你会相信我会合作”的认知过程。游戏具有较高的策略性与心理学生态效度，支持人类用户与大语言模型共同参与，适用于研究合作行为、策略形成与心智理论推理。",
+      "category": "cognitive",
+      "tags": ["合作博弈", "心智理论", "博弈论", "递归推理", "人机协同", "信念建模", "认知实验"],
+      "duration": "20-30 分钟",
+      "difficulty": "中等偏高",
+      "citations": 0,
+      "isPopular": true,
+      "version": "1.0",
+      "releaseDate": "2025-07-05",
+      "lastUpdated": "2025-07-05",
+      "relatedPapers": [
+        "Neural Mechanisms of Belief Inference during Cooperative Games (Yoshida et al., 2010)",
+        "Game Theory of Mind: Recursive Belief Modeling (Yoshida et al., 2008)"
+      ],
+      "license": "CC BY-NC-SA 4.0",
+      "repository": "https://github.com/CogniAND/stag-hunt-game",
+      "contactInfo": "contact@CogniAND.research",
+      "experimentPath": "/experiments/stag-hunt-game"
+    },
+    {
       "id": -1,
       "title": "城市应急任务：多智能体认知协作与资源调配实验",
       "authors": "CogniAND研究团队",
