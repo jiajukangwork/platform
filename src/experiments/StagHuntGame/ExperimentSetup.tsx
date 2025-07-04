@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Users, Map, Target, Brain, Clock, Cpu, Key, Eye, EyeOff } from 'lucide-react';
+import { Settings, Users, Map, Target, Brain, Clock, Cpu, Key, Eye, EyeOff, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import Button from '../../components/Button';
 import { ExperimentConfig } from './index';
+import { callLLMAPI } from './utils/llmService';
 
 interface ExperimentSetupProps {
   onComplete: (config: ExperimentConfig) => void;
@@ -40,6 +41,9 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [customModel, setCustomModel] = useState('');
   const [useCustomModel, setUseCustomModel] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [connectionMessage, setConnectionMessage] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +55,49 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
     }
     
     onComplete(finalConfig);
+  };
+
+  const testConnection = async () => {
+    // 验证是否有API Key
+    if (!config.llmConfig.apiKey) {
+      setConnectionStatus('error');
+      setConnectionMessage('请先输入API Key');
+      return;
+    }
+
+    setTestingConnection(true);
+    setConnectionStatus('idle');
+    setConnectionMessage('');
+
+    try {
+      // 使用简单的测试提示
+      const testPrompt = "请回复数字1";
+      const modelToTest = useCustomModel && customModel.trim() !== '' ? customModel.trim() : config.llmConfig.model;
+      
+      const response = await callLLMAPI(
+        testPrompt,
+        config.llmConfig.provider,
+        modelToTest,
+        config.llmConfig.apiKey,
+        config.llmConfig.baseUrl,
+        "你是一个测试助手。请简单回复。"
+      );
+      
+      // 检查响应是否有效
+      if (response && response.trim() !== '') {
+        setConnectionStatus('success');
+        setConnectionMessage(`连接成功！模型响应: "${response.substring(0, 30)}${response.length > 30 ? '...' : ''}"`);
+      } else {
+        setConnectionStatus('error');
+        setConnectionMessage('连接成功但响应为空');
+      }
+    } catch (error) {
+      console.error('API连接测试失败:', error);
+      setConnectionStatus('error');
+      setConnectionMessage(error instanceof Error ? error.message : '未知错误');
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   return (
@@ -247,15 +294,37 @@ const ExperimentSetup = ({ onComplete }: ExperimentSetupProps) => {
                     llmConfig: { ...prev.llmConfig, apiKey: e.target.value }
                   }))}
                   placeholder="输入您的API Key"
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 pr-20 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-12 flex items-center px-2 text-gray-400 hover:text-gray-600"
                 >
                   {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+                <button
+                  type="button"
+                  onClick={testConnection}
+                  disabled={testingConnection || !config.llmConfig.apiKey}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                >
+                  <TestTube className={`w-4 h-4 ${testingConnection ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+              <div className="mt-1">
+                {connectionStatus === 'success' && (
+                  <p className="text-sm text-green-600 flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    {connectionMessage}
+                  </p>
+                )}
+                {connectionStatus === 'error' && (
+                  <p className="text-sm text-red-600 flex items-center">
+                    <XCircle className="w-4 h-4 mr-1" />
+                    连接失败: {connectionMessage}
+                  </p>
+                )}
               </div>
               <p className="mt-1 text-xs text-gray-500">
                 您的API密钥将仅用于此实验，不会被存储或用于其他目的
