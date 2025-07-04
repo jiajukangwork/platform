@@ -49,6 +49,16 @@ interface AiThought {
   confidence: number;
 }
 
+// Move getGridDimensions function to the top before it's used
+const getGridDimensions = (size: string): { width: number; height: number } => {
+  switch (size) {
+    case 'small': return { width: 5, height: 5 };
+    case 'medium': return { width: 8, height: 8 };
+    case 'large': return { width: 12, height: 12 };
+    default: return { width: 8, height: 8 };
+  }
+};
+
 const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
   const [gameState, setGameState] = useState<GameState>({
     entities: [],
@@ -768,15 +778,6 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-  
-  const getGridDimensions = (size: string): { width: number; height: number } => {
-    switch (size) {
-      case 'small': return { width: 5, height: 5 };
-      case 'medium': return { width: 8, height: 8 };
-      case 'large': return { width: 12, height: 12 };
-      default: return { width: 8, height: 8 };
-    }
   };
   
   const getEntityColor = (type: string): string => {
