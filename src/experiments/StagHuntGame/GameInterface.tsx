@@ -232,11 +232,8 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
   const startAiThinking = () => {
     // AI思考，每5-10秒生成一次想法
     aiThinkingRef.current = setInterval(() => {
-      if (!isPaused && config.llmConfig.apiKey) {
+      if (!isPaused) {
         generateAiThought();
-      } else if (!isPaused) {
-        // 如果没有API密钥，使用模板生成想法
-        generateTemplateAiThought();
       }
     }, 5000 + Math.random() * 5000);
   };
@@ -522,6 +519,13 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
   };
   
   const generateAiThought = async () => {
+    // 检查是否有有效的API密钥
+    if (!config.llmConfig.apiKey || config.llmConfig.apiKey.trim() === '') {
+      // 如果没有API密钥，直接使用模板生成
+      generateTemplateAiThought();
+      return;
+    }
+
     try {
       // 获取当前游戏状态
       const player = gameState.entities.find(e => e.type === 'player');
@@ -566,8 +570,8 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
       });
       
     } catch (error) {
-      console.error('生成AI思考失败:', error);
-      // 失败时使用模板生成
+      // 静默处理错误，不在控制台显示错误信息
+      // 直接使用模板生成思考
       generateTemplateAiThought();
     }
   };
@@ -684,40 +688,35 @@ const GameInterface = ({ config, onComplete, onBack }: GameInterfaceProps) => {
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
     
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Extract content based on provider
-      let content = '';
-      switch (provider) {
-        case 'openai':
-          content = data.choices[0]?.message?.content || '';
-          break;
-        case 'anthropic':
-          content = data.content[0]?.text || '';
-          break;
-        case 'google':
-          content = data.candidates[0]?.content?.parts[0]?.text || '';
-          break;
-        default:
-          content = 'API响应解析失败';
-      }
-      
-      return content;
-    } catch (error) {
-      console.error('LLM API call failed:', error);
-      throw error;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
     }
+    
+    const data = await response.json();
+    
+    // Extract content based on provider
+    let content = '';
+    switch (provider) {
+      case 'openai':
+        content = data.choices[0]?.message?.content || '';
+        break;
+      case 'anthropic':
+        content = data.content[0]?.text || '';
+        break;
+      case 'google':
+        content = data.candidates[0]?.content?.parts[0]?.text || '';
+        break;
+      default:
+        content = 'API响应解析失败';
+    }
+    
+    return content;
   };
   
   const togglePause = () => {
