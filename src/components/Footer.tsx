@@ -44,17 +44,9 @@ const Footer = () => {
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-white">联系方式</h3>
             <ul className="mt-4 space-y-3">
-              <li className="flex items-start space-x-3">
-                <MapPin className="h-5 w-5 text-primary-400 flex-shrink-0" />
-                <span className="text-sm">北京市海淀区创新大道123号</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-primary-400 flex-shrink-0" />
-                <span className="text-sm">+86 (10) 8888-7777</span>
-              </li>
               <li className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-primary-400 flex-shrink-0" />
-                <span className="text-sm">contact@cognixai.research</span>
+                <span className="text-sm">um.andlab@gmail.com</span>
               </li>
             </ul>
           </div>
