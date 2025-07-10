@@ -57,7 +57,7 @@ const App = () => {
                 <Route path="/experiments/reward-social-comparison-bandit-task" element={<RewardSocialComparisonBanditTask />} />
                 <Route path="/experiments/enhanced-bandit-task" element={<EnhancedBanditTask />} />
                 <Route path="/experiments/urban-emergency-task" element={<UrbanEmergencyTask />} />
-                <Route path="/experiments/stag-hunt-game" element={<StagHuntGame />} />SpeedGame
+                <Route path="/experiments/stag-hunt-game" element={<StagHuntGame />} />
                 <Route path="/experiments/speed-game" element={<SpeedGame />} />
               </Routes>
             </main>
