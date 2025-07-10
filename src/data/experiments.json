@@ -1,6 +1,29 @@
 {
   "experiments": [
     {
+      "id": -3,
+      "title": "速度博弈：动态决策与策略适应实验",
+      "authors": "CogniAND研究团队",
+      "description": "本实验模拟在交通情境下的人机对抗博弈，参与者在一个人字形道路地图上控制红色小车（左侧）与由电脑控制的蓝色小车（右侧）进行速度策略博弈。两个小车从各自路径出发，最终汇合至同一路段，玩家需通过调节自身速度，以实现对博弈局势的掌控并获得更高得分。操作仅涉及速度选择（2/3/4/5键），对应不同等级的行驶速度与加速度。实验旨在考察个体在有限控制条件下的动态策略调整、对手建模与风险规避能力，适用于研究博弈行为、动态决策及认知控制。",
+      "category": "cognitive",
+      "tags": ["博弈论", "动态决策", "速度控制", "策略适应", "人机对抗", "认知控制", "交通博弈"],
+      "duration": "15-25 分钟",
+      "difficulty": "中等",
+      "citations": 0,
+      "isPopular": true,
+      "version": "1.0",
+      "releaseDate": "2025-07-10",
+      "lastUpdated": "2025-07-10",
+      "relatedPapers": [
+        "Modeling Dynamic Interactions in Competitive Driving Scenarios",
+        "Decision-Making in Time-Constrained Control Tasks"
+      ],
+      "license": "CC BY-NC-SA 4.0",
+      "repository": "https://github.com/CogniAND/speed-game",
+      "contactInfo": "contact@CogniAND.research",
+      "experimentPath": "/experiments/speed-game"
+    },
+    {
       "id": -2,
       "title": "猎鹿任务：信念推理与协作策略实验",
       "authors": "CogniAND研究团队（基于Yoshida等人, 2010）",
