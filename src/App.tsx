@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ExperimentsPage from './pages/ExperimentsPage';
 import ExperimentPage from './pages/ExperimentPage';
+import AdminPage from './pages/AdminPage';
 import IowaGamblingTask from './experiments/IowaGamblingTask';
 import DelayDiscountingTask from './experiments/DelayDiscountingTask';
 import BalloonRiskTask from './experiments/BalloonRiskTask';
@@ -38,6 +39,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/experiments" element={<ExperimentsPage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 <Route path="/experiments/:id" element={<ExperimentPage />} />
                 <Route path="/experiments/iowa-gambling-task" element={<IowaGamblingTask />} />
                 <Route path="/experiments/delay-discounting-task" element={<DelayDiscountingTask />} />

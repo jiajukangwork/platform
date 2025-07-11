@@ -42,6 +42,7 @@ const Navbar = () => {
             <NavLink to="/experiments" label="实验" />
             <NavLink to="/#about" label="关于" />
             <NavLink to="/#team" label="团队" />
+            <NavLink to="/admin" label="管理" />
           </nav>
           
           <div className="hidden md:block">

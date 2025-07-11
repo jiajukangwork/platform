@@ -28,6 +28,7 @@ const Footer = () => {
               <FooterLink href="/experiments" label="实验" />
               <FooterLink href="/#about" label="关于" />
               <FooterLink href="/#team" label="团队" />
+              <FooterLink href="/admin" label="管理后台" />
             </ul>
           </div>
           

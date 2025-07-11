@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, BarChart3, BookOpen, GitFork, Calendar, RefreshCw, ExternalLink } from 'lucide-react';
 import Button from '../components/Button';
+import PygameExperimentWrapper from '../components/PygameExperimentWrapper';
 import experimentsData from '../data/experiments.json';
 
 interface Experiment {
@@ -19,10 +20,12 @@ interface Experiment {
   version: string;
   releaseDate: string;
   lastUpdated: string;
+  type?: string;
   relatedPapers: string[];
   license: string;
   repository: string;
   contactInfo: string;
+  experimentPath: string;
 }
 
 const ExperimentPage = () => {
@@ -52,6 +55,18 @@ const ExperimentPage = () => {
           <Button href="/experiments" variant="outline">返回实验列表</Button>
         </div>
       </div>
+    );
+  }
+  
+  // 如果是Pygame实验，使用PygameExperimentWrapper
+  if (experiment.type === 'pygame') {
+    return (
+      <PygameExperimentWrapper
+        experimentId={experiment.id.toString()}
+        experimentName={experiment.title}
+        experimentDescription={experiment.description}
+        serverUrl="https://pygame-server.example.com" // 实际应用中应该使用真实的服务器URL
+      />
     );
   }
 
