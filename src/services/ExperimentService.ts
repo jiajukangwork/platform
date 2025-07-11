@@ -34,6 +34,12 @@ interface ExperimentFile {
   author: string;
   code: string;
   config: Record<string, any>;
+  serverConfig?: {
+    port: number;
+    requirements: string[];
+    entryPoint: string;
+    pythonVersion: string;
+  };
 }
 
 class ExperimentService {
@@ -125,6 +131,12 @@ class ExperimentService {
                 tags: ['博弈论', '动态决策', '速度控制'],
                 duration: '15-25 分钟',
                 difficulty: '中等'
+              },
+              serverConfig: {
+                port: 8000,
+                requirements: ['pygame==2.1.2', 'numpy==1.22.3'],
+                entryPoint: 'main.py',
+                pythonVersion: '3.9'
               }
             },
             {
@@ -178,7 +190,7 @@ class ExperimentService {
       return new Promise(resolve => {
         setTimeout(() => {
           const isPython = file.name.endsWith('.py');
-          resolve({
+          const newExperiment: ExperimentFile = {
             id: Date.now().toString(),
             name: file.name.replace(/\.[^/.]+$/, ""),
             description: '请添加实验描述',
@@ -193,7 +205,19 @@ class ExperimentService {
               ...config,
               displayName: file.name.replace(/\.[^/.]+$/, "")
             }
-          });
+          };
+          
+          // 如果是Python文件，添加服务器配置
+          if (isPython) {
+            newExperiment.serverConfig = {
+              port: 8000 + Math.floor(Math.random() * 1000),
+              requirements: ['pygame==2.1.2', 'numpy==1.22.3'],
+              entryPoint: file.name,
+              pythonVersion: '3.9'
+            };
+          }
+          
+          resolve(newExperiment);
         }, 2000);
       });
     } catch (error) {
@@ -254,6 +278,52 @@ class ExperimentService {
       });
     } catch (error) {
       console.error(`Error deleting experiment ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // 发布实验
+  public async publishExperiment(id: string): Promise<Experiment> {
+    try {
+      // 实际应用中应该是一个真实的API调用
+      // const response = await fetch(`${this.apiUrl}/admin/experiments/${id}/publish`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      //   }
+      // });
+      
+      // if (!response.ok) throw new Error(`Failed to publish experiment ${id}`);
+      // return await response.json();
+      
+      // 模拟API调用
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            id: parseInt(id),
+            title: '新发布的实验',
+            authors: '当前用户',
+            description: '这是一个新发布的实验',
+            category: 'cognitive',
+            tags: ['标签1', '标签2'],
+            duration: '15-20 分钟',
+            difficulty: '中等',
+            citations: 0,
+            isPopular: false,
+            version: '1.0',
+            releaseDate: new Date().toISOString().split('T')[0],
+            lastUpdated: new Date().toISOString().split('T')[0],
+            type: 'pygame',
+            relatedPapers: [],
+            license: 'MIT',
+            repository: 'https://github.com/example/repo',
+            contactInfo: 'contact@example.com',
+            experimentPath: `/experiments/${id}`
+          });
+        }, 1000);
+      });
+    } catch (error) {
+      console.error(`Error publishing experiment ${id}:`, error);
       throw error;
     }
   }

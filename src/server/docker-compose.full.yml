@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  # API服务器
+  api-server:
+    build: ./api
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./experiments:/app/experiments
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+    restart: unless-stopped
+
+  # Pygame实验服务器
+  pygame-server-1:
+    build: .
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./experiments:/app/experiments
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: python PygameServer.py --experiment /app/experiments/example_experiment.py --port 8000
+
+  pygame-server-2:
+    build: .
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./experiments:/app/experiments
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: python PygameServer.py --experiment /app/experiments/another_experiment.py --port 8000
+
+  # 反向代理服务器
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api-server
+      - pygame-server-1
+      - pygame-server-2
+    restart: unless-stopped
+
+  # 数据库（可选）
+  # db:
+  #   image: postgres:14
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_PASSWORD=password
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_DB=experiments
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:

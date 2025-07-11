@@ -1,0 +1,5 @@
+# Pygame实验服务器依赖
+aiohttp==3.8.5
+websockets==11.0.3
+pygame==2.5.2
+pillow==10.0.0

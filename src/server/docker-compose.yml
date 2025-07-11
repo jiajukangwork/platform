@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  pygame-server:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./experiments:/app/experiments
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: python PygameServer.py --experiment /app/experiments/example_experiment.py --port 8000
+
+  # 可以添加更多实验服务器实例，每个使用不同的端口
+  # pygame-server-2:
+  #   build: .
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - ./experiments:/app/experiments
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #   restart: unless-stopped
+  #   command: python PygameServer.py --experiment /app/experiments/another_experiment.py --port 8000
+
+  # 添加反向代理服务器（可选）
+  # nginx:
+  #   image: nginx:latest
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - pygame-server

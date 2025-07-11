@@ -1,8 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Upload, FileCode, CheckCircle, XCircle, Lock, Eye, EyeOff, Save, Trash2, Edit, Plus } from 'lucide-react';
+import { 
+  ArrowLeft, Upload, FileCode, CheckCircle, XCircle, Lock, Eye, EyeOff, 
+  Save, Trash2, Edit, Plus, Server, Settings, Database, Code, Play
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
+import DeploymentButton from '../components/DeploymentButton';
 
 interface ExperimentFile {
   id: string;
@@ -16,6 +20,12 @@ interface ExperimentFile {
   author: string;
   code: string;
   config: Record<string, any>;
+  serverConfig?: {
+    port: number;
+    requirements: string[];
+    entryPoint: string;
+    pythonVersion: string;
+  };
 }
 
 const AdminPage = () => {
@@ -41,6 +51,12 @@ const AdminPage = () => {
         tags: ['博弈论', '动态决策', '速度控制'],
         duration: '15-25 分钟',
         difficulty: '中等'
+      },
+      serverConfig: {
+        port: 8000,
+        requirements: ['pygame==2.1.2', 'numpy==1.22.3'],
+        entryPoint: 'main.py',
+        pythonVersion: '3.9'
       }
     },
     {
@@ -65,21 +81,39 @@ const AdminPage = () => {
   ]);
   const [selectedExperiment, setSelectedExperiment] = useState<ExperimentFile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'code' | 'server'>('details');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'stopped' | 'running' | 'error'>('stopped');
+  const [serverLogs, setServerLogs] = useState<string[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const codeEditorRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // 检查本地存储中是否有认证信息
+    const authToken = localStorage.getItem('adminAuthToken');
+    if (authToken) {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // 简单的身份验证逻辑，实际应用中应使用更安全的方式
     if (username === 'admin' && password === 'password') {
+      localStorage.setItem('adminAuthToken', 'fake-jwt-token');
       setIsAuthenticated(true);
     } else {
       alert('用户名或密码错误');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminAuthToken');
+    setIsAuthenticated(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,9 +181,20 @@ const AdminPage = () => {
           }
         };
         
+        // 如果是Python文件，添加服务器配置
+        if (isPython) {
+          newExperiment.serverConfig = {
+            port: 8000 + Math.floor(Math.random() * 1000),
+            requirements: ['pygame==2.1.2', 'numpy==1.22.3'],
+            entryPoint: file.name,
+            pythonVersion: '3.9'
+          };
+        }
+        
         setExperiments(prev => [...prev, newExperiment]);
         setSelectedExperiment(newExperiment);
         setIsEditing(true);
+        setActiveTab('details');
       }, 2000);
     };
     
@@ -159,12 +204,19 @@ const AdminPage = () => {
   const handleSaveExperiment = () => {
     if (!selectedExperiment) return;
     
+    // 更新最后修改时间
+    const updatedExperiment = {
+      ...selectedExperiment,
+      lastModified: new Date().toISOString().split('T')[0]
+    };
+    
     setExperiments(prev => 
       prev.map(exp => 
-        exp.id === selectedExperiment.id ? selectedExperiment : exp
+        exp.id === updatedExperiment.id ? updatedExperiment : exp
       )
     );
     
+    setSelectedExperiment(updatedExperiment);
     setIsEditing(false);
     alert('实验已保存');
   };
@@ -190,19 +242,68 @@ const AdminPage = () => {
       uploadDate: new Date().toISOString().split('T')[0],
       lastModified: new Date().toISOString().split('T')[0],
       author: '当前用户',
-      code: '# 在此编写实验代码',
+      code: '# 在此编写实验代码\nimport pygame\nimport sys\n\npygame.init()\n\nscreen = pygame.display.set_mode((800, 600))\npygame.display.set_caption("实验")\n\nwhile True:\n    for event in pygame.event.get():\n        if event.type == pygame.QUIT:\n            pygame.quit()\n            sys.exit()\n    \n    screen.fill((255, 255, 255))\n    pygame.display.flip()',
       config: {
         displayName: '新实验',
         category: 'cognitive',
         tags: [],
         duration: '15-20 分钟',
         difficulty: '中等'
+      },
+      serverConfig: {
+        port: 8000 + Math.floor(Math.random() * 1000),
+        requirements: ['pygame==2.1.2', 'numpy==1.22.3'],
+        entryPoint: 'main.py',
+        pythonVersion: '3.9'
       }
     };
     
     setExperiments(prev => [...prev, newExperiment]);
     setSelectedExperiment(newExperiment);
     setIsEditing(true);
+    setActiveTab('details');
+  };
+
+  const handleStartServer = () => {
+    if (!selectedExperiment || !selectedExperiment.serverConfig) return;
+    
+    setServerStatus('running');
+    setServerLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] 正在启动服务器...`]);
+    
+    // 模拟服务器启动过程
+    setTimeout(() => {
+      setServerLogs(prev => [
+        ...prev, 
+        `[${new Date().toLocaleTimeString()}] 安装依赖...`,
+        `[${new Date().toLocaleTimeString()}] 正在启动 Python ${selectedExperiment.serverConfig?.pythonVersion}...`,
+        `[${new Date().toLocaleTimeString()}] 服务器启动成功，监听端口 ${selectedExperiment.serverConfig?.port}`
+      ]);
+    }, 2000);
+  };
+
+  const handleStopServer = () => {
+    setServerStatus('stopped');
+    setServerLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] 服务器已停止`]);
+  };
+
+  const handlePublishExperiment = () => {
+    if (!selectedExperiment) return;
+    
+    // 更新实验状态为已发布
+    const updatedExperiment = {
+      ...selectedExperiment,
+      status: 'active' as const,
+      lastModified: new Date().toISOString().split('T')[0]
+    };
+    
+    setExperiments(prev => 
+      prev.map(exp => 
+        exp.id === updatedExperiment.id ? updatedExperiment : exp
+      )
+    );
+    
+    setSelectedExperiment(updatedExperiment);
+    alert('实验已发布，现在可以在实验列表中访问');
   };
 
   if (!isAuthenticated) {
@@ -285,7 +386,7 @@ const AdminPage = () => {
           </div>
           <Button 
             variant="outline" 
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
           >
             退出登录
           </Button>
@@ -361,6 +462,7 @@ const AdminPage = () => {
                     onClick={() => {
                       setSelectedExperiment(experiment);
                       setIsEditing(false);
+                      setActiveTab('details');
                     }}
                   >
                     <div className="flex justify-between items-start">
@@ -389,8 +491,8 @@ const AdminPage = () => {
           {/* 实验详情 */}
           <div className="lg:col-span-2">
             {selectedExperiment ? (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center p-6 border-b border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-900">
                     {isEditing ? '编辑实验' : '实验详情'}
                   </h2>
@@ -405,14 +507,26 @@ const AdminPage = () => {
                         保存
                       </Button>
                     ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setIsEditing(true)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        编辑
-                      </Button>
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          编辑
+                        </Button>
+                        {selectedExperiment.status !== 'active' && (
+                          <Button 
+                            variant="primary" 
+                            size="sm"
+                            onClick={handlePublishExperiment}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            发布
+                          </Button>
+                        )}
+                      </>
                     )}
                     <Button 
                       variant="outline" 
@@ -425,281 +539,528 @@ const AdminPage = () => {
                   </div>
                 </div>
                 
-                {isEditing ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          实验名称
-                        </label>
-                        <input
-                          type="text"
-                          value={selectedExperiment.name}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            name: e.target.value
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                {/* 标签页导航 */}
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex">
+                    <button
+                      className={`py-4 px-6 font-medium text-sm border-b-2 ${
+                        activeTab === 'details'
+                          ? 'border-primary-500 text-primary-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                      onClick={() => setActiveTab('details')}
+                    >
+                      <Settings className="w-4 h-4 inline mr-2" />
+                      基本信息
+                    </button>
+                    <button
+                      className={`py-4 px-6 font-medium text-sm border-b-2 ${
+                        activeTab === 'code'
+                          ? 'border-primary-500 text-primary-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                      onClick={() => setActiveTab('code')}
+                    >
+                      <Code className="w-4 h-4 inline mr-2" />
+                      代码编辑
+                    </button>
+                    {selectedExperiment.type === 'pygame' && (
+                      <button
+                        className={`py-4 px-6 font-medium text-sm border-b-2 ${
+                          activeTab === 'server'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                        onClick={() => setActiveTab('server')}
+                      >
+                        <Server className="w-4 h-4 inline mr-2" />
+                        服务器配置
+                      </button>
+                    )}
+                  </nav>
+                </div>
+                
+                <div className="p-6">
+                  {/* 基本信息标签页 */}
+                  {activeTab === 'details' && (
+                    isEditing ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              实验名称
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedExperiment.name}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                name: e.target.value
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              显示名称
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedExperiment.config.displayName}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                config: {
+                                  ...selectedExperiment.config,
+                                  displayName: e.target.value
+                                }
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            实验描述
+                          </label>
+                          <textarea
+                            value={selectedExperiment.description}
+                            onChange={(e) => setSelectedExperiment({
+                              ...selectedExperiment,
+                              description: e.target.value
+                            })}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              实验类型
+                            </label>
+                            <select
+                              value={selectedExperiment.type}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                type: e.target.value as any
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            >
+                              <option value="pygame">Python/Pygame</option>
+                              <option value="web">Web/React</option>
+                              <option value="other">其他</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              实验分类
+                            </label>
+                            <select
+                              value={selectedExperiment.config.category}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                config: {
+                                  ...selectedExperiment.config,
+                                  category: e.target.value
+                                }
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            >
+                              <option value="cognitive">认知心理学</option>
+                              <option value="behavioral">行为经济学</option>
+                              <option value="social">社会心理学</option>
+                              <option value="ethical">伦理决策</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              状态
+                            </label>
+                            <select
+                              value={selectedExperiment.status}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                status: e.target.value as any
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            >
+                              <option value="draft">草稿</option>
+                              <option value="active">已发布</option>
+                              <option value="archived">已归档</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              实验时长
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedExperiment.config.duration}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                config: {
+                                  ...selectedExperiment.config,
+                                  duration: e.target.value
+                                }
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              难度
+                            </label>
+                            <select
+                              value={selectedExperiment.config.difficulty}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                config: {
+                                  ...selectedExperiment.config,
+                                  difficulty: e.target.value
+                                }
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            >
+                              <option value="简单">简单</option>
+                              <option value="中等">中等</option>
+                              <option value="困难">困难</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            标签（用逗号分隔）
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedExperiment.config.tags.join(', ')}
+                            onChange={(e) => setSelectedExperiment({
+                              ...selectedExperiment,
+                              config: {
+                                ...selectedExperiment.config,
+                                tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                              }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            作者
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedExperiment.author}
+                            onChange={(e) => setSelectedExperiment({
+                              ...selectedExperiment,
+                              author: e.target.value
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">实验名称</h3>
+                            <p className="mt-1 text-lg text-gray-900">{selectedExperiment.name}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">显示名称</h3>
+                            <p className="mt-1 text-lg text-gray-900">{selectedExperiment.config.displayName}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">实验描述</h3>
+                          <p className="mt-1 text-gray-900">{selectedExperiment.description}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">实验类型</h3>
+                            <p className="mt-1 text-gray-900">
+                              {selectedExperiment.type === 'pygame' ? 'Python/Pygame' : 
+                               selectedExperiment.type === 'web' ? 'Web/React' : '其他'}
+                            </p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">实验分类</h3>
+                            <p className="mt-1 text-gray-900">
+                              {selectedExperiment.config.category === 'cognitive' ? '认知心理学' :
+                               selectedExperiment.config.category === 'behavioral' ? '行为经济学' :
+                               selectedExperiment.config.category === 'social' ? '社会心理学' :
+                               selectedExperiment.config.category === 'ethical' ? '伦理决策' :
+                               selectedExperiment.config.category}
+                            </p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">状态</h3>
+                            <p className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              selectedExperiment.status === 'active' ? 'bg-green-100 text-green-800' :
+                              selectedExperiment.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {selectedExperiment.status === 'active' ? '已发布' : 
+                               selectedExperiment.status === 'draft' ? '草稿' : '已归档'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">实验时长</h3>
+                            <p className="mt-1 text-gray-900">{selectedExperiment.config.duration}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">难度</h3>
+                            <p className="mt-1 text-gray-900">{selectedExperiment.config.difficulty}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">标签</h3>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {selectedExperiment.config.tags.map((tag, index) => (
+                              <span 
+                                key={index}
+                                className="inline-flex px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">上传日期</h3>
+                            <p className="mt-1 text-gray-900">{selectedExperiment.uploadDate}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">最后修改</h3>
+                            <p className="mt-1 text-gray-900">{selectedExperiment.lastModified}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">作者</h3>
+                          <p className="mt-1 text-gray-900">{selectedExperiment.author}</p>
+                        </div>
+                      </div>
+                    )
+                  )}
+                  
+                  {/* 代码编辑标签页 */}
+                  {activeTab === 'code' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium text-gray-900">实验代码</h3>
+                        {isEditing && (
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                if (codeEditorRef.current) {
+                                  codeEditorRef.current.value = selectedExperiment.code;
+                                }
+                              }}
+                            >
+                              重置
+                            </Button>
+                            <Button 
+                              variant="primary" 
+                              size="sm"
+                              onClick={() => {
+                                if (codeEditorRef.current) {
+                                  setSelectedExperiment({
+                                    ...selectedExperiment,
+                                    code: codeEditorRef.current.value
+                                  });
+                                }
+                              }}
+                            >
+                              应用更改
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {isEditing ? (
+                        <textarea
+                          ref={codeEditorRef}
+                          defaultValue={selectedExperiment.code}
+                          rows={20}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          显示名称
-                        </label>
-                        <input
-                          type="text"
-                          value={selectedExperiment.config.displayName}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            config: {
-                              ...selectedExperiment.config,
-                              displayName: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-auto max-h-[500px]">
+                          <pre className="text-sm font-mono whitespace-pre-wrap">{selectedExperiment.code}</pre>
+                        </div>
+                      )}
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        实验描述
-                      </label>
-                      <textarea
-                        value={selectedExperiment.description}
-                        onChange={(e) => setSelectedExperiment({
-                          ...selectedExperiment,
-                          description: e.target.value
-                        })}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
+                  )}
+                  
+                  {/* 服务器配置标签页 */}
+                  {activeTab === 'server' && selectedExperiment.type === 'pygame' && (
+                    <div className="space-y-6">
+                      {isEditing ? (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                端口号
+                              </label>
+                              <input
+                                type="number"
+                                value={selectedExperiment.serverConfig?.port || 8000}
+                                onChange={(e) => setSelectedExperiment({
+                                  ...selectedExperiment,
+                                  serverConfig: {
+                                    ...selectedExperiment.serverConfig!,
+                                    port: parseInt(e.target.value)
+                                  }
+                                })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Python版本
+                              </label>
+                              <select
+                                value={selectedExperiment.serverConfig?.pythonVersion || '3.9'}
+                                onChange={(e) => setSelectedExperiment({
+                                  ...selectedExperiment,
+                                  serverConfig: {
+                                    ...selectedExperiment.serverConfig!,
+                                    pythonVersion: e.target.value
+                                  }
+                                })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              >
+                                <option value="3.7">Python 3.7</option>
+                                <option value="3.8">Python 3.8</option>
+                                <option value="3.9">Python 3.9</option>
+                                <option value="3.10">Python 3.10</option>
+                                <option value="3.11">Python 3.11</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              入口文件
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedExperiment.serverConfig?.entryPoint || 'main.py'}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                serverConfig: {
+                                  ...selectedExperiment.serverConfig!,
+                                  entryPoint: e.target.value
+                                }
+                              })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              依赖项（每行一个）
+                            </label>
+                            <textarea
+                              value={selectedExperiment.serverConfig?.requirements.join('\n')}
+                              onChange={(e) => setSelectedExperiment({
+                                ...selectedExperiment,
+                                serverConfig: {
+                                  ...selectedExperiment.serverConfig!,
+                                  requirements: e.target.value.split('\n').filter(Boolean)
+                                }
+                              })}
+                              rows={5}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">端口号</h3>
+                              <p className="mt-1 text-gray-900">{selectedExperiment.serverConfig?.port || 8000}</p>
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">Python版本</h3>
+                              <p className="mt-1 text-gray-900">{selectedExperiment.serverConfig?.pythonVersion || '3.9'}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">入口文件</h3>
+                            <p className="mt-1 text-gray-900">{selectedExperiment.serverConfig?.entryPoint || 'main.py'}</p>
+                          </div>
+                          
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500">依赖项</h3>
+                            <div className="mt-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                              <ul className="list-disc pl-5 space-y-1">
+                                {selectedExperiment.serverConfig?.requirements.map((req, index) => (
+                                  <li key={index} className="text-sm text-gray-700">{req}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                          
+                          <div className="border-t border-gray-200 pt-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">服务器控制</h3>
+                            
+                            <div className="flex space-x-4 mb-4">
+                              {serverStatus === 'running' ? (
+                                <Button 
+                                  variant="outline" 
+                                  onClick={handleStopServer}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  停止服务器
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="primary" 
+                                  onClick={handleStartServer}
+                                >
+                                  <Play className="w-4 h-4 mr-2" />
+                                  启动服务器
+                                </Button>
+                              )}
+                              
+                              <DeploymentButton className="ml-auto" />
+                            </div>
+                            
+                            <div className="bg-black rounded-lg p-4 text-white font-mono text-sm h-64 overflow-y-auto">
+                              {serverLogs.length > 0 ? (
+                                serverLogs.map((log, index) => (
+                                  <div key={index} className="mb-1">{log}</div>
+                                ))
+                              ) : (
+                                <div className="text-gray-400">服务器日志将显示在这里...</div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          实验类型
-                        </label>
-                        <select
-                          value={selectedExperiment.type}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            type: e.target.value as any
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="pygame">Python/Pygame</option>
-                          <option value="web">Web/React</option>
-                          <option value="other">其他</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          实验分类
-                        </label>
-                        <select
-                          value={selectedExperiment.config.category}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            config: {
-                              ...selectedExperiment.config,
-                              category: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="cognitive">认知心理学</option>
-                          <option value="behavioral">行为经济学</option>
-                          <option value="social">社会心理学</option>
-                          <option value="ethical">伦理决策</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          状态
-                        </label>
-                        <select
-                          value={selectedExperiment.status}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            status: e.target.value as any
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="draft">草稿</option>
-                          <option value="active">已发布</option>
-                          <option value="archived">已归档</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          实验时长
-                        </label>
-                        <input
-                          type="text"
-                          value={selectedExperiment.config.duration}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            config: {
-                              ...selectedExperiment.config,
-                              duration: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          难度
-                        </label>
-                        <select
-                          value={selectedExperiment.config.difficulty}
-                          onChange={(e) => setSelectedExperiment({
-                            ...selectedExperiment,
-                            config: {
-                              ...selectedExperiment.config,
-                              difficulty: e.target.value
-                            }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="简单">简单</option>
-                          <option value="中等">中等</option>
-                          <option value="困难">困难</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        标签（用逗号分隔）
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedExperiment.config.tags.join(', ')}
-                        onChange={(e) => setSelectedExperiment({
-                          ...selectedExperiment,
-                          config: {
-                            ...selectedExperiment.config,
-                            tags: e.target.value.split(',').map(tag => tag.trim())
-                          }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        实验代码
-                      </label>
-                      <textarea
-                        value={selectedExperiment.code}
-                        onChange={(e) => setSelectedExperiment({
-                          ...selectedExperiment,
-                          code: e.target.value
-                        })}
-                        rows={15}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">实验名称</h3>
-                        <p className="mt-1 text-lg text-gray-900">{selectedExperiment.name}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">显示名称</h3>
-                        <p className="mt-1 text-lg text-gray-900">{selectedExperiment.config.displayName}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500">实验描述</h3>
-                      <p className="mt-1 text-gray-900">{selectedExperiment.description}</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">实验类型</h3>
-                        <p className="mt-1 text-gray-900">
-                          {selectedExperiment.type === 'pygame' ? 'Python/Pygame' : 
-                           selectedExperiment.type === 'web' ? 'Web/React' : '其他'}
-                        </p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">实验分类</h3>
-                        <p className="mt-1 text-gray-900">
-                          {selectedExperiment.config.category === 'cognitive' ? '认知心理学' :
-                           selectedExperiment.config.category === 'behavioral' ? '行为经济学' :
-                           selectedExperiment.config.category === 'social' ? '社会心理学' :
-                           selectedExperiment.config.category === 'ethical' ? '伦理决策' :
-                           selectedExperiment.config.category}
-                        </p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">状态</h3>
-                        <p className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          selectedExperiment.status === 'active' ? 'bg-green-100 text-green-800' :
-                          selectedExperiment.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {selectedExperiment.status === 'active' ? '已发布' : 
-                           selectedExperiment.status === 'draft' ? '草稿' : '已归档'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">实验时长</h3>
-                        <p className="mt-1 text-gray-900">{selectedExperiment.config.duration}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">难度</h3>
-                        <p className="mt-1 text-gray-900">{selectedExperiment.config.difficulty}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500">标签</h3>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {selectedExperiment.config.tags.map((tag, index) => (
-                          <span 
-                            key={index}
-                            className="inline-flex px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500">实验代码</h3>
-                      <div className="mt-1 bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-auto max-h-[400px]">
-                        <pre className="text-sm font-mono whitespace-pre-wrap">{selectedExperiment.code}</pre>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">上传日期</h3>
-                        <p className="mt-1 text-gray-900">{selectedExperiment.uploadDate}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500">最后修改</h3>
-                        <p className="mt-1 text-gray-900">{selectedExperiment.lastModified}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center justify-center h-full">
