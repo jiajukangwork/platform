@@ -3,7 +3,7 @@ import HeroSection from '../components/HeroSection';
 import AboutSection from '../components/AboutSection';
 import TeamSection from '../components/TeamSection';
 import ContactSection from '../components/ContactSection';
-import { ArrowRight, BookOpen, Brain, Compass, FlaskRound as Flask, Trophy } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, Compass, FlaskRound as Flask, Trophy, Settings } from 'lucide-react';
 import Button from '../components/Button';
 
 const HomePage = () => {
@@ -14,8 +14,58 @@ const HomePage = () => {
       <AboutSection />
       <ResearchHighlights />
       <TeamSection />
+      <AdminAccessSection />
       <ContactSection />
     </div>
+  );
+};
+
+const AdminAccessSection = () => {
+  return (
+    <section className="py-12 bg-primary-50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="flex items-center justify-center mb-4"
+          >
+            <Settings className="w-8 h-8 text-primary-600" />
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-3xl font-bold text-gray-900 mb-4"
+          >
+            实验管理系统
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-lg text-gray-600 mb-8"
+          >
+            访问我们的管理后台，上传和配置基于Pygame的实验
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <Button href="/admin" variant="primary" size="lg">
+              进入管理后台
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    </section>
   );
 };
 

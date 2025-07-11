@@ -347,7 +347,8 @@ class ExperimentService {
       // 模拟API调用
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          if (username === 'admin' && password === 'password') {
+          // 修改为允许任何账号和密码都能鉴权成功
+          if (username && password) {
             resolve('fake-jwt-token');
           } else {
             reject(new Error('Invalid credentials'));

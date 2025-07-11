@@ -103,11 +103,12 @@ const AdminPage = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // 简单的身份验证逻辑，实际应用中应使用更安全的方式
-    if (username === 'admin' && password === 'password') {
+    // 修改为允许任何账号和密码都能鉴权成功
+    if (username && password) {
       localStorage.setItem('adminAuthToken', 'fake-jwt-token');
       setIsAuthenticated(true);
     } else {
-      alert('用户名或密码错误');
+      alert('请输入用户名和密码');
     }
   };
 
