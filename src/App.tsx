@@ -26,6 +26,7 @@ import EnhancedBanditTask from './experiments/EnhancedBanditTask/index';
 import UrbanEmergencyTask from './experiments/UrbanEmergencyTask/index';
 import StagHuntGame from './experiments/StagHuntGame/index';
 import SpeedGame from './experiments/SpeedGame/index';
+import ReactionPredatorPrey from './experiments/ReactionPredatorPrey';
 import { PhysiologicalSyncProvider } from './components/PhysiologicalSyncContext';
 
 const App = () => {
@@ -61,6 +62,7 @@ const App = () => {
                 <Route path="/experiments/urban-emergency-task" element={<UrbanEmergencyTask />} />
                 <Route path="/experiments/stag-hunt-game" element={<StagHuntGame />} />
                 <Route path="/experiments/speed-game" element={<SpeedGame />} />
+                <Route path="/experiments/reaction-predator-prey" element={<ReactionPredatorPrey />} />
               </Routes>
             </main>
           </AnimatePresence>
