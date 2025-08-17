@@ -1,6 +1,29 @@
 {
   "experiments": [
     {
+      "id": -4,
+      "title": "反应能力测试：攻击者与逃跑者",
+      "authors": "CogniAND研究团队",
+      "description": "本测试是一种反应能力测试，您可能会有两种角色，攻击者和逃跑者。当您是攻击者时，您需要操控代表您的图标来追捕对方；当您是逃跑者时，您需要操控代表您的图标来躲避对方。为了获得更真实且全面的测试体验，我们可能会在测试中使用皮肤电刺激设备，在您手上制造轻微疼痛，模拟被攻击时的感受。游戏场景位于一个正方形区域内，橙色圆圈代表您，紫色圆圈代表对手（AI）。作为攻击者时，您的体型明显更大且带有一张大嘴，需追上并吃掉对方；作为逃跑者时，对手体型更大且会试图吃掉您，此时您需尽力逃跑。",
+      "category": "cognitive",
+      "tags": ["反应能力", "攻击与逃跑", "皮肤电刺激", "人机对抗", "角色切换", "动态决策"],
+      "duration": "15-20 分钟",
+      "difficulty": "中等",
+      "citations": 0,
+      "isPopular": false,
+      "version": "1.0",
+      "releaseDate": "2025-08-17",
+      "lastUpdated": "2025-08-17",
+      "relatedPapers": [
+        "Skin Conductance Feedback in Real-Time Competitive Tasks",
+        "Role-Reversal Dynamics in Pursuit-Evasion Games"
+      ],
+      "license": "CC BY-NC-SA 4.0",
+      "repository": "https://github.com/CogniAND/reaction-predator-prey",
+      "contactInfo": "contact@CogniAND.research",
+      "experimentPath": "/experiments/reaction-predator-prey"
+    },
+    {
       "id": -3,
       "title": "速度博弈：动态决策与策略适应实验",
       "authors": "CogniAND研究团队",
