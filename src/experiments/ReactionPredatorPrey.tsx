@@ -128,7 +128,7 @@ const ReactionPredatorPrey = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [totalTime, setTotalTime] = useState<number | null>(null);
-  const [keys, setKeys] = useState<Set<string>>(new Set());
+  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [stimulationCount, setStimulationCount] = useState(0);
   const [lastStimulation, setLastStimulation] = useState(0);
   const [roundStartTime, setRoundStartTime] = useState(0);
@@ -163,7 +163,7 @@ const ReactionPredatorPrey = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState === 'playing') {
-        setKeys(prev => new Set(prev).add(e.key.toLowerCase()));
+        setPressedKeys(prev => new Set(prev).add(e.key.toLowerCase()));
         
         // Speed boost with shift key
         if (e.key === 'Shift' && player.energy > 20) {
@@ -185,7 +185,7 @@ const ReactionPredatorPrey = () => {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (gameState === 'playing') {
-        setKeys(prev => {
+        setPressedKeys(prev => {
           const newKeys = new Set(prev);
           newKeys.delete(e.key.toLowerCase());
           return newKeys;
@@ -312,19 +312,19 @@ const ReactionPredatorPrey = () => {
     let playerVelocity = { x: 0, y: 0 };
     let isMoving = false;
     
-    if (keys.has('arrowup') || keys.has('w')) {
+    if (pressedKeys.has('arrowup') || pressedKeys.has('w')) {
       playerVelocity.y = -1;
       isMoving = true;
     }
-    if (keys.has('arrowdown') || keys.has('s')) {
+    if (pressedKeys.has('arrowdown') || pressedKeys.has('s')) {
       playerVelocity.y = 1;
       isMoving = true;
     }
-    if (keys.has('arrowleft') || keys.has('a')) {
+    if (pressedKeys.has('arrowleft') || pressedKeys.has('a')) {
       playerVelocity.x = -1;
       isMoving = true;
     }
-    if (keys.has('arrowright') || keys.has('d')) {
+    if (pressedKeys.has('arrowright') || pressedKeys.has('d')) {
       playerVelocity.x = 1;
       isMoving = true;
     }
@@ -458,7 +458,7 @@ const ReactionPredatorPrey = () => {
 
     // Draw game
     drawGame();
-  }, [keys, player, ai, lastStimulation, gameSettings, isSpeedBoosting]);
+  }, [pressedKeys, player, ai, lastStimulation, gameSettings, isSpeedBoosting]);
 
   const getDistance = (pos1: Position, pos2: Position): number => {
     const dx = pos1.x - pos2.x;
@@ -608,7 +608,7 @@ const ReactionPredatorPrey = () => {
 
     // Draw UI elements
     drawUI(ctx);
-  }, [keys, player, ai, lastStimulation, gameSettings, isSpeedBoosting, showStimulation, roundTime, currentRound, stimulationCount]);
+  };
 
   const drawUI = (ctx: CanvasRenderingContext2D) => {
     // Draw role indicator
